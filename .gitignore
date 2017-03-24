@@ -3,4 +3,13 @@
 !.gitignore
 *~
 *.swp
+*.dll
+*.pdb
+*.Debug
+*.Release
+Makefile
+src/debug
+src/release
+tests/debug
+tests/release
 lib
