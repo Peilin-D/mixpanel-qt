@@ -4,6 +4,8 @@
 #include "mixpanel-qt_global.h"
 #include <QtCore>
 #include <QtNetwork>
+#include <vector>
+#include <map>
 
 class MIXPANELQTSHARED_EXPORT Mixpanel: public QObject
 {
@@ -14,11 +16,12 @@ public:
     const static QString ADD;
     const static QString APPEND;
     const static QString UNION;
-
+    const static QString UNSET;
+    const static QString DELETE;
 
     const static QString DEFAULT_ENDPOINT;
     const static bool DEFAULT_VERBOSE = false;
-    const static QString DEFAULT_OPERATION;
+    // const static QString DEFAULT_OPERATION;
 
 private:
     QString endpoint;
@@ -26,27 +29,41 @@ private:
     QString distinct_id;
     bool verbose;
 
+    std::map<QString, std::vector<QByteArray> > buffers;
+    /*
+    std::vector<QByteArray> event_buffer;
+    std::vector<QByteArray> engage_buffer;
+    std::vector<QByteArray> import_buffer;
+    */
+
+    int maxBufferSize;
+
 public:
-    Mixpanel(const QString &token);
+    // Mixpanel(const QString &token);
+    Mixpanel(const QString &token, int bufferSize = 0);
 
     QString getEndpoint() const;
     void setEndpoint(const QString &value);
     QString getToken() const;
     void setToken(const QString &value);
-    QString getDistinct_id() const;
-    void setDistinct_id(const QString &value);
+    // QString getDistinct_id() const;
+    // void setDistinct_id(const QString &value);
     bool getVerbose() const;
     void setVerbose(bool value);
 
-    bool track(QString event, QVariantMap properties = QVariantMap());
-    bool engage(QVariantMap properties, QString operation = DEFAULT_OPERATION);
+    bool track(QString distinct_id, QString event, QVariantMap properties, bool buffered = true);
+    bool engage(QString distinct_id, QString operation, QVariantMap properties, bool buffered = true);
+    bool flush_all();
 
 signals:
     void sended();
     void error();
 
 private:
-    bool sendRequest(QString path, const QVariantMap & parameters);
+    // bool sendRequest(QString path, const QVariantMap & parameters);
+    bool sendRequest(QString path, const QByteArray &json);
+    bool sendBufferedRequest(QString path, const QByteArray &json);
+    bool flush(QString path);
 
 private slots:
     void networkError(QNetworkReply::NetworkError);

@@ -45,11 +45,11 @@ void MixpanelTest::mixpanelTrackCase()
     QFETCH(bool, verbose);
 
     mixpanel->setVerbose(verbose);
-    mixpanel->setDistinct_id(distinct_id);
+    // mixpanel->setDistinct_id(distinct_id);
 
     QSignalSpy spySended(mixpanel, SIGNAL(sended()));
     QSignalSpy spyError(mixpanel, SIGNAL(error()));
-    QVERIFY(mixpanel->track(event,properties));
+    QVERIFY(mixpanel->track(distinct_id, event, properties));
 
     QTest::qWait(1000);
 
@@ -114,11 +114,11 @@ void MixpanelTest::mixpanelEngageCase()
     QFETCH(bool, verbose);
 
     mixpanel->setVerbose(verbose);
-    mixpanel->setDistinct_id(distinct_id);
+    // mixpanel->setDistinct_id(distinct_id);
 
     QSignalSpy spySended(mixpanel, SIGNAL(sended()));
     QSignalSpy spyError(mixpanel, SIGNAL(error()));
-    QVERIFY(mixpanel->engage(properties,operation));
+    QVERIFY(mixpanel->engage(distinct_id, operation, properties));
 
     QTest::qWait(1000);
 

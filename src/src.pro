@@ -18,7 +18,7 @@ QT       -= gui
 TARGET = mixpanel-qt
 TEMPLATE = lib
 
-DESTDIR = $$PWD/../../lib/$$DEFAULT_SUBDIR
+DESTDIR = $$PWD/../lib/$$DEFAULT_SUBDIR
 
 DEFINES += MIXPANELQT_LIBRARY
 
@@ -26,6 +26,8 @@ SOURCES += mixpanel.cpp
 
 HEADERS += mixpanel.h\
         mixpanel-qt_global.h
+
+INCLUDEPATH += C:/Projects/qjson/src
 
 unix:!symbian {
     maemo5 {
@@ -42,4 +44,4 @@ macx {
     LIBS += -L/opt/local/lib/
 }
 
-unix|win32: LIBS += -lqjson
+unix|win32: LIBS += -L"C:\Projects\qjson\build-vs\src\Debug" -lqjsond

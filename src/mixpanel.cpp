@@ -1,55 +1,113 @@
 #include "mixpanel.h"
-#include <qjson/serializer.h>
+#include <QDateTime>
+#include <serializer.h>
 
-const QString Mixpanel::DEFAULT_ENDPOINT = "http://api.mixpanel.com/";
+const QString Mixpanel::DEFAULT_ENDPOINT = "https://api.mixpanel.com/";
 const QString Mixpanel::SET = "$set";
 const QString Mixpanel::SET_ONCE = "$set_once";
 const QString Mixpanel::ADD = "$add";
 const QString Mixpanel::APPEND = "$append";
 const QString Mixpanel::UNION = "$union";
-const QString Mixpanel::DEFAULT_OPERATION = SET;
+// const QString Mixpanel::DEFAULT_OPERATION = SET;
+const QString Mixpanel::UNSET = "$unset";
+const QString Mixpanel::DELETE = "$delete";
 
-Mixpanel::Mixpanel(const QString &token) :endpoint(DEFAULT_ENDPOINT), token(token), distinct_id(QString()), verbose(DEFAULT_VERBOSE)
+const int MAX_BATCH_SIZE = 50;
+
+Mixpanel::Mixpanel(const QString &token, int bufferSize) : endpoint(DEFAULT_ENDPOINT),
+                                                           token(token),
+                                                           distinct_id(QString()),
+                                                           verbose(DEFAULT_VERBOSE),
+                                                           maxBufferSize(bufferSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : bufferSize)
 {
+    std::vector<QByteArray> event_buffer, engage_buffer, import_buffer;
+    buffers["event"] = event_buffer;
+    buffers["engage"] = engage_buffer;
+    buffers["import"] = import_buffer;
 }
 
-bool Mixpanel::track(QString event, QVariantMap properties)
+bool Mixpanel::track(QString distinct_id, QString event, QVariantMap properties, bool buffered)
 {
     QVariantMap parameters;
     parameters.insert("event", event);
+    if (!properties.contains("time")) {
+        properties.insert("time", QDateTime::currentDateTime().toTime_t());
+    }
 
     properties.insert("token", token);
-    if(distinct_id!=QString())
+    if(distinct_id != QString())
         properties.insert("distinct_id", distinct_id);
 
     parameters.insert("properties", properties);
-    return sendRequest("track",parameters);
+    QJson::Serializer serializer;
+    QByteArray json = serializer.serialize(parameters);
+
+    if (buffered) {
+        return sendBufferedRequest("track", json);
+    } else {
+        return sendRequest("track", json);
+    }
 }
 
-bool Mixpanel::engage(QVariantMap properties, QString operation)
+bool Mixpanel::engage(QString distinct_id, QString operation, QVariantMap properties, bool buffered)
 {
     QVariantMap parameters;
     parameters.insert("$token", token);
-    if(distinct_id==QString())
+    if (!properties.contains("time")) {
+        properties.insert("time", QDateTime::currentDateTime().toTime_t());
+    }
+
+    if(distinct_id == QString())
     {
         qCritical() << "distinct_id needed for engage";
         return false;
     }
     parameters.insert("$distinct_id", distinct_id);
     parameters.insert(operation, properties);
-    return sendRequest("engage", parameters);
-}
 
-bool Mixpanel::sendRequest(QString path, const QVariantMap & parameters)
-{
     QJson::Serializer serializer;
     QByteArray json = serializer.serialize(parameters);
-    qDebug() << json;
-    if(QByteArray("")==json)
-        return false;
 
+    if (buffered) {
+        return sendBufferedRequest("engage", json);
+    } else {
+        return sendRequest("engage", json);
+    }
+}
+
+bool Mixpanel::sendBufferedRequest(QString path, const QByteArray &json) {
+    qDebug() << json;
+    if(QByteArray("") == json)
+        return false;
+    std::vector<QByteArray> &buffer = buffers[path];
+    buffer.push_back(json);
+    if ((int)buffer.size() >= maxBufferSize) {
+        return flush(path);
+    }
+    return true;
+}
+
+bool Mixpanel::flush(QString path) {
+    std::vector<QByteArray> &buffer = buffers[path];
+    if (buffer.empty()) return true;
+    QByteArray batch_json = "[";
+    for (int i = 0; i < (int)buffer.size(); i++) {
+        batch_json += buffer[i] + ",";
+    }
+    // replace the last "," with "]"
+    batch_json.replace(batch_json.size() - 1, 1, "]");
+    buffer.clear();
+    return sendRequest(path, batch_json);
+}
+
+bool Mixpanel::flush_all() {
+    return flush("event") && flush("engage") && flush("import");
+}
+
+bool Mixpanel::sendRequest(QString path, const QByteArray &json) {
+    qDebug() << json;
     QByteArray data = json.toBase64();
-    QString urlString = endpoint+path+"/?data="+data;
+    QString urlString = endpoint + path + "/?data=" + data;
     if(verbose)
         urlString += "&verbose=1";
 
@@ -78,7 +136,7 @@ void Mixpanel::networkFinished()
     sended();
 }
 
-
+/*
 QString Mixpanel::getDistinct_id() const
 {
     return distinct_id;
@@ -88,6 +146,7 @@ void Mixpanel::setDistinct_id(const QString &value)
 {
     distinct_id = value;
 }
+*/
 
 QString Mixpanel::getToken() const
 {

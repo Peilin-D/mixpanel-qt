@@ -26,13 +26,13 @@ DEFINES += SRCDIR=\\\"$$PWD/\\\"
 
 
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/debug/release/ -lmixpanel-qt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/debug/debug/ -lmixpanel-qt
-else:unix: LIBS += -L$$PWD/../../lib/debug/ -lmixpanel-qt
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../lib/release/ -lmixpanel-qt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../lib/debug/ -lmixpanel-qt
+else:unix: LIBS += -L$$PWD/../lib/debug/ -lmixpanel-qt
 
 macx {
-    QMAKE_POST_LINK += cp $$PWD/../../lib/$${DEFAULT_SUBDIR}/*.dylib $$OUT_PWD/
+    QMAKE_POST_LINK += cp $$PWD/../lib/$${DEFAULT_SUBDIR}/*.dylib $$OUT_PWD/
 }
 
-INCLUDEPATH += $$PWD/../../lib $$PWD/../src
-DEPENDPATH += $$PWD/../../lib
+INCLUDEPATH += $$PWD/../lib $$PWD/../src
+DEPENDPATH += $$PWD/../lib
