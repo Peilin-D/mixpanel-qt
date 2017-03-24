@@ -1,10 +1,13 @@
-mixpanel-qt
+mixpanel-qt with buffered tracking
 ===========
 
 Qt library for mixpanel
 
-Test on QT 4.8.4
-Depends of Qjson
+Originally written by [jdauphant](https://github.com/jdauphant/mixpanel-qt). 
 
-MacOS X :
-- Tested with Qjson installed with macport
+I mainly added buffered tracking, along with some small modifications to some orginal functions and variables.
+
+The library depends on qjson, which can be acquired [here](http://qjson.sourceforge.net/). To make it work, you may need to modify the link to qjson library in the src.pro file.
+
+Tested on Qt 4.8.5
+
