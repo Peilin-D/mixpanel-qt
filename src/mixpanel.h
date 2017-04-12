@@ -6,6 +6,7 @@
 #include <QtNetwork>
 #include <vector>
 #include <map>
+#include <QTimer>
 
 class MIXPANELQTSHARED_EXPORT Mixpanel: public QObject
 {
@@ -30,17 +31,20 @@ private:
     bool verbose;
 
     std::map<QString, std::vector<QByteArray> > buffers;
+
+    QMutex mutex;
     /*
     std::vector<QByteArray> event_buffer;
     std::vector<QByteArray> engage_buffer;
     std::vector<QByteArray> import_buffer;
     */
-
     int maxBufferSize;
+
+    QTimer *flushTimer;
 
 public:
     // Mixpanel(const QString &token);
-    Mixpanel(const QString &token, int bufferSize = 0);
+    Mixpanel(const QString &token, int bufferSize = 0, int interval = 60000);
 
     QString getEndpoint() const;
     void setEndpoint(const QString &value);
@@ -53,6 +57,8 @@ public:
 
     bool track(QString distinct_id, QString event, QVariantMap properties, bool buffered = true);
     bool engage(QString distinct_id, QString operation, QVariantMap properties, bool buffered = true);
+
+public slots:
     bool flush_all();
 
 signals:
@@ -68,6 +74,7 @@ private:
 private slots:
     void networkError(QNetworkReply::NetworkError);
     void networkFinished();
+
 };
 
 

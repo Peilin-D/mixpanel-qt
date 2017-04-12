@@ -14,16 +14,21 @@ const QString Mixpanel::DELETE = "$delete";
 
 const int MAX_BATCH_SIZE = 50;
 
-Mixpanel::Mixpanel(const QString &token, int bufferSize) : endpoint(DEFAULT_ENDPOINT),
-                                                           token(token),
-                                                           distinct_id(QString()),
-                                                           verbose(DEFAULT_VERBOSE),
-                                                           maxBufferSize(bufferSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : bufferSize)
+Mixpanel::Mixpanel(const QString &token, int bufferSize, int interval) : endpoint(DEFAULT_ENDPOINT),
+                                                                         token(token),
+                                                                         distinct_id(QString()),
+                                                                         verbose(DEFAULT_VERBOSE),
+                                                                         maxBufferSize(bufferSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : bufferSize)
 {
     std::vector<QByteArray> event_buffer, engage_buffer, import_buffer;
-    buffers["event"] = event_buffer;
+    buffers["track"] = event_buffer;
     buffers["engage"] = engage_buffer;
     buffers["import"] = import_buffer;
+    flushTimer = new QTimer(this);
+    if (interval > 0) { // enable auto flush
+        connect(flushTimer, SIGNAL(timeout()), this, SLOT(flush_all()));
+        flushTimer->start(interval);
+    }
 }
 
 bool Mixpanel::track(QString distinct_id, QString event, QVariantMap properties, bool buffered)
@@ -53,9 +58,7 @@ bool Mixpanel::engage(QString distinct_id, QString operation, QVariantMap proper
 {
     QVariantMap parameters;
     parameters.insert("$token", token);
-    if (!properties.contains("time")) {
-        properties.insert("time", QDateTime::currentDateTime().toTime_t());
-    }
+    parameters.insert("$time", QDateTime::currentDateTime().toTime_t());
 
     if(distinct_id == QString())
     {
@@ -79,18 +82,21 @@ bool Mixpanel::sendBufferedRequest(QString path, const QByteArray &json) {
     qDebug() << json;
     if(QByteArray("") == json)
         return false;
+    mutex.lock();
     std::vector<QByteArray> &buffer = buffers[path];
     buffer.push_back(json);
+    bool res = true;
     if ((int)buffer.size() >= maxBufferSize) {
-        return flush(path);
+        res = flush(path);
     }
-    return true;
+    mutex.unlock();
+    return res;
 }
 
 bool Mixpanel::flush(QString path) {
     std::vector<QByteArray> &buffer = buffers[path];
-    if (buffer.empty()) return true;
     QByteArray batch_json = "[";
+    if (buffer.empty()) return true;
     for (int i = 0; i < (int)buffer.size(); i++) {
         batch_json += buffer[i] + ",";
     }
@@ -101,7 +107,11 @@ bool Mixpanel::flush(QString path) {
 }
 
 bool Mixpanel::flush_all() {
-    return flush("event") && flush("engage") && flush("import");
+    // qDebug() << "flush all...";
+    mutex.lock();
+    bool res = flush("track") && flush("engage") && flush("import");
+    mutex.unlock();
+    return res;
 }
 
 bool Mixpanel::sendRequest(QString path, const QByteArray &json) {
