@@ -10,3 +10,4 @@ The library depends on qjson, which can be acquired [here](http://qjson.sourcefo
 
 Tested on Qt 4.8.5
 
+version = 4.8.5
