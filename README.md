@@ -8,6 +8,4 @@ I added (thread safe) buffered tracking/engaging, as well as functionality to fl
 
 The library depends on qjson, which can be acquired [here](http://qjson.sourceforge.net/). To make it work, you may need to modify the link to qjson library in the src.pro file.
 
-Tested on Qt 4.8.6
-
-version = 4.8.5
+Tested on Qt 4.8.5
